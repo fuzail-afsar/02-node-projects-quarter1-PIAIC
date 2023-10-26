@@ -1,0 +1,19 @@
+{
+  "name": "project01_number_guessing-game",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "scripts": {
+    "start": "tsc && node ./build/app.js"
+  },
+  "author": "fuzail",
+  "license": "ISC",
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "inquirer": "^9.2.10"
+  },
+  "devDependencies": {
+    "@types/inquirer": "^9.0.3",
+    "@types/node": "^20.5.9"
+  }
+}

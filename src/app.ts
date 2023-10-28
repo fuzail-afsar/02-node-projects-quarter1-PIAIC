@@ -1,84 +1,88 @@
 import inquirer from "inquirer";
-import { faker } from "@faker-js/faker";
 import chalk from "chalk";
 
-interface User {
-  id: string;
-  pin: number;
-  name: string;
-  accountNumber: string;
-  balance: number;
-}
-
-enum Choices {
-  WITHDRAW = "Withdraw",
-  BALANCE_ENQUIRY = "Balance Inquiry",
-  EXIT = "Exit",
+enum TodosAction {
+  VIEW = "View",
+  CREATE = "Create",
+  UPDATE = "Update",
+  DELETE = "Delete",
 }
 
 (function () {
-  let isDefaultUserCreated = false;
-  function createRandomUser(): User {
-    let pin = parseInt(faker.finance.pin());
+  const todos: string[] = [];
 
-    if (!isDefaultUserCreated) {
-      pin = 1234;
-      isDefaultUserCreated = true;
-    }
-
-    return {
-      id: faker.string.uuid(),
-      pin,
-      name: faker.person.fullName(),
-      accountNumber: faker.finance.accountNumber(),
-      balance: parseInt(faker.finance.amount()),
-    };
+  async function createTodo() {
+    const { todo } = await inquirer.prompt({
+      type: "input",
+      name: "todo",
+      message: "Enter todo",
+    });
+    todos.push(todo);
   }
 
-  async function ATM(users: User[]) {
+  async function updateTodo() {
+    const { updateTodo, todo } = await inquirer.prompt([
+      {
+        type: "list",
+        choices: todos,
+        name: "updateTodo",
+        message: "Select todo to update",
+      },
+      {
+        type: "input",
+        name: "todo",
+        message: "Enter updated todo",
+      },
+    ]);
+
+    const index = todos.indexOf(updateTodo);
+    if (index === -1) throw new Error("Todo not fount!");
+
+    todos.splice(index, 1, todo);
+  }
+
+  async function deleteTodo() {
+    const { deleteTodo } = await inquirer.prompt({
+      type: "list",
+      choices: todos,
+      name: "deleteTodo",
+      message: "Select todo to delete",
+    });
+
+    const index = todos.indexOf(deleteTodo);
+    if (index === -1) throw new Error("Todo not fount!");
+
+    todos.splice(index, 1);
+  }
+
+  function viewTodos() {
+    todos.forEach((todo) => console.log(chalk.bold.blueBright(todo)));
+  }
+
+  async function getTodoActions() {
     try {
-      // User pin
-      const { pin } = await inquirer.prompt({
-        type: "password",
-        name: "pin",
-        message: "Enter your ATM card pin",
-      });
-
-      const user = users.find((user) => user.pin === parseInt(pin));
-      if (!user) throw new Error("Invalid user pin");
-
-      let { name, balance } = user;
-
-      console.log(chalk.bold.blueBright(`Welcome! ${name}`));
-
-      // User's Action
       const { action } = await inquirer.prompt({
         type: "list",
+        choices: Object.values(TodosAction),
         name: "action",
-        choices: Object.values(Choices),
-        message: "Please select an option",
+        message: "Select todo option",
       });
 
       switch (action) {
-        case Choices.WITHDRAW:
-          const { amount } = await inquirer.prompt({
-            type: "number",
-            name: "amount",
-            message: "Enter withdraw amount",
-          });
-          if (amount > balance) throw new Error("Insufficient balance");
-
-          balance -= amount;
-          console.log(chalk.bold.blueBright(`Withdraw amount: ${amount}`));
-          console.log(
-            chalk.bold.blueBright(`Balance after withdraw amount: ${balance}`)
-          );
+        case TodosAction.VIEW:
+          viewTodos();
           break;
-        case Choices.BALANCE_ENQUIRY:
-          console.log(chalk.bold.blueBright(`Your Balance: ${balance}`));
+        case TodosAction.CREATE:
+          await createTodo();
+          break;
+        case TodosAction.UPDATE:
+          await updateTodo();
+          break;
+        case TodosAction.DELETE:
+          await deleteTodo();
           break;
       }
-      console.log(chalk.bold.blueBright("Thanks for using ATM"));
+      getTodoActions();
     } catch (error) {
       if (error instanceof Error) {
         console.log(chalk.bold.redBright(error.message));
@@ -89,10 +93,7 @@ enum Choices {
   }
 
   function init() {
-    const users: User[] = faker.helpers.multiple(createRandomUser, {
-      count: 5,
-    });
-    ATM(users);
+    getTodoActions();
   }
 
   return init();

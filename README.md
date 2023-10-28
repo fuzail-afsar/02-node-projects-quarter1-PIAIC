@@ -1,4 +1,4 @@
-# ATM PROJECT
+# TODO PROJECT
 
 ## Installation
 
@@ -7,7 +7,3 @@
 Install all the dependencies
 
 ### `npm start`
-
-Runs the app in the development mode.
-
-#### Default user pin `1234`

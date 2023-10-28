@@ -1,4 +1,4 @@
-# TODO PROJECT
+# CURRENCY CONVERTER PROJECT
 
 ## Installation
 

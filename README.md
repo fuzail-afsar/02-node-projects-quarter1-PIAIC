@@ -1,4 +1,4 @@
-# QUIZ PROJECT
+# COUNTDOWN TIMER PROJECT
 
 ## Installation
 

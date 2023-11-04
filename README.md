@@ -1,4 +1,4 @@
-# ADVENTURE GAME PROJECT
+# QUIZ PROJECT
 
 ## Installation
 

@@ -1,71 +1,85 @@
 import chalk from "chalk";
 import inquirer from "inquirer";
-import Opponent from "./opponent.js";
-import Player from "./player.js";
-import Utils from "./utils.js";
 
-enum ActionChoises {
-  ATTACK = "Attack",
-  DRINK_HEALTH = "Drink Health",
-  RUN = "Run",
-}
+type Question = {
+  question: string;
+  correct_answer: string;
+  incorrect_answers: string[];
+  answers: string[];
+};
 
-try {
-  let isPlaying = true;
+type FetchQuestionsResponse = {
+  response_code: number;
+  results: Question[];
+};
 
-  const player = new Player();
-  let opponent = new Opponent();
+{
+  const shuffle = <K>(arr: K[]) => {
+    for (var i = 0; i < arr.length; i++) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var temp = arr[i];
+      arr[i] = arr[j];
+      arr[j] = temp;
+    }
+    return arr;
+  };
 
-  console.log(chalk.bold.italic.yellowBright("Game Starts!"));
-  Utils.playerLog(`Your opponent is ${opponent.name}`);
+  const fetchQuestions = async (amount = 10, type = "multiple") => {
+    try {
+      const res = await fetch(
+        `https://opentdb.com/api.php?amount=${amount}&type=${type}`
+      );
+      const data = (await res.json()) as FetchQuestionsResponse;
 
-  while (isPlaying) {
-    const { action } = await inquirer.prompt({
-      name: "action",
-      type: "list",
-      choices: Object.values(ActionChoises),
-      message: "Select option",
-    });
+      if (!data?.results) throw new Error("Data has not fetched");
 
-    switch (action) {
-      case ActionChoises.ATTACK:
-        player.attack();
-        opponent.attack();
+      data.results.forEach((res) => {
+        res.answers = shuffle([...res.incorrect_answers, res.correct_answer]);
+      });
 
-        if (opponent.health <= 0) {
-          Utils.playerLog("You win the game");
-          player.winGame();
+      return data.results;
+    } catch (error) {
+      throw error;
+    }
+  };
 
-          opponent = new Opponent();
-          Utils.playerLog(`Your new opponent is ${opponent.name}`);
-        } else if (player.health <= 0) {
-          Utils.opponentLog("You loss the game");
-          isPlaying = false;
+  (async () => {
+    let score = 0;
+    try {
+      const questions = await fetchQuestions();
+      const totalQuestions = questions.length;
+
+      console.log(chalk.bold.italic.blue("Quiz has been started!"));
+
+      for (let i = 0; i < totalQuestions; i++) {
+        const { question, answers, correct_answer } = questions[i];
+
+        const { userAnswer } = await inquirer.prompt({
+          name: "userAnswer",
+          type: "list",
+          choices: answers,
+          message: question,
+        });
+
+        if (userAnswer === correct_answer) {
+          score++;
+          console.log(chalk.green("Correct answer"));
           continue;
         }
 
-        Utils.playerLog(`Your Health: ${player.health}`);
-        Utils.opponentLog(`Opponent Health: ${opponent.health}`);
+        console.log(chalk.red("Wrong answer!"));
+      }
 
-        break;
-      case ActionChoises.DRINK_HEALTH:
-        if (player.chances) player.drinkHealth();
-        Utils.playerLog(`Your health: ${player.health}`);
-        Utils.playerLog(`Your Chances: ${player.chances}`);
-        break;
-      case ActionChoises.RUN:
-        Utils.opponentLog("You loss the game");
-        isPlaying = false;
-        break;
-      default:
-        break;
+      console.log(
+        `Your score is ${chalk.bold.blue(score)} out of ${chalk.bold.blue(
+          totalQuestions
+        )}`
+      );
+    } catch (error) {
+      if (error instanceof Error)
+        console.error(chalk.bold.redBright(error.message));
+      else if (typeof error === "string")
+        console.error(chalk.bold.redBright(error));
     }
-  }
-
-  console.log(chalk.bold.italic.yellowBright("Game Ends!"));
-} catch (error) {
-  if (error instanceof Error)
-    console.error(chalk.bold.redBright(error.message));
-  else if (typeof error === "string")
-    console.error(chalk.bold.redBright(error));
+  })();
 }

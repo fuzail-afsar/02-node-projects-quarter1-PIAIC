@@ -1,4 +1,4 @@
-# COUNTDOWN TIMER PROJECT
+# OOP PROJECT
 
 ## Installation
 

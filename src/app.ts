@@ -1,23 +1,58 @@
 import chalk from "chalk";
 import inquirer from "inquirer";
-import { setInterval } from "timers";
+import Person from "./person.js";
+import Student from "./student.js";
 
-let { timeSeconds } = await inquirer.prompt({
-  name: "timeSeconds",
-  type: "number",
-  message: "Enter timer value in seconds: ",
-});
+enum PersonalityChoises {
+  INTROVERT = "Introvert",
+  EXTROVERT = "Extrovert",
+}
 
-let intervalId = setInterval(() => {
-  timeSeconds--;
+class App {
+  constructor() {
+    this.init();
+  }
 
-  const min = Math.floor(timeSeconds / 60)
-    .toFixed()
-    .padStart(2, "0");
-  const sec = Math.floor(timeSeconds % 60)
-    .toFixed()
-    .padStart(2, "0");
-  console.log(`Time left: ${chalk.bold.blue(min)}:${chalk.bold.blue(sec)}`);
+  async init() {
+    const personality = await this.askPersonality();
 
-  if (timeSeconds <= 0) clearInterval(intervalId);
-}, 1000);
+    const person = new Person();
+    person.personality = personality;
+
+    const name = await this.askName();
+
+    const student = new Student();
+    student.name = name;
+
+    console.log(
+      chalk.blue(
+        `Your name is ${chalk.bold(
+          student.name
+        )} and your personality type is ${chalk.bold(person.personality)}`
+      )
+    );
+  }
+
+  async askPersonality(): Promise<PersonalityChoises> {
+    const { personality } = await inquirer.prompt({
+      name: "personality",
+      type: "list",
+      choices: Object.values(PersonalityChoises),
+      message: "Select your personality: ",
+    });
+
+    return personality;
+  }
+
+  async askName(): Promise<string> {
+    const { name } = await inquirer.prompt({
+      name: "name",
+      type: "input",
+      message: "Enter your name: ",
+    });
+
+    return name;
+  }
+}
+
+new App();

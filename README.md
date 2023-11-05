@@ -1,4 +1,4 @@
-# ATM PROJECT
+# MYBANK PROJECT
 
 ## Installation
 
@@ -10,4 +10,4 @@ Install all the dependencies
 
 Runs the app in the development mode.
 
-#### Default user pin `1234`
+#### Default user account `12345678`

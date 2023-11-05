@@ -1,99 +1,148 @@
 import inquirer from "inquirer";
 import { faker } from "@faker-js/faker";
 import chalk from "chalk";
+import Account, { IAccount } from "./account.js";
 
-interface User {
-  id: string;
-  pin: number;
-  name: string;
-  accountNumber: string;
-  balance: number;
-}
-
-enum Choices {
-  WITHDRAW = "Withdraw",
-  BALANCE_ENQUIRY = "Balance Inquiry",
+enum ServiceChoices {
+  BALANCE_ENQUIRY = "Balance Enquiry",
+  CASH_DEPOSIT = "Cash Deposit",
+  CASH_WITHDRAW = "Cash Withdraw",
   EXIT = "Exit",
 }
 
-(function () {
-  let isDefaultUserCreated = false;
-  function createRandomUser(): User {
-    let pin = parseInt(faker.finance.pin());
-
-    if (!isDefaultUserCreated) {
-      pin = 1234;
-      isDefaultUserCreated = true;
-    }
-
-    return {
-      id: faker.string.uuid(),
-      pin,
-      name: faker.person.fullName(),
-      accountNumber: faker.finance.accountNumber(),
-      balance: parseInt(faker.finance.amount()),
-    };
+class Bank {
+  private accounts: IAccount[] = [];
+  constructor() {
+    this.init();
   }
 
-  async function ATM(users: User[]) {
+  private init() {
+    this.setAccounts();
+    this.serveServices();
+  }
+
+  private setAccounts() {
+    const { accounts } = new Account();
+    this.accounts = accounts;
+  }
+
+  private async serveServices() {
     try {
-      // User pin
-      const { pin } = await inquirer.prompt({
-        type: "password",
-        name: "pin",
-        message: "Enter your ATM card pin",
-      });
-
-      const user = users.find((user) => user.pin === parseInt(pin));
-      if (!user) throw new Error("Invalid user pin");
-
-      let { name, balance } = user;
-
-      console.log(chalk.bold.blueBright(`Welcome! ${name}`));
-
-      // User's Action
-      const { action } = await inquirer.prompt({
-        type: "list",
-        name: "action",
-        choices: Object.values(Choices),
-        message: "Please select an option",
-      });
-
-      switch (action) {
-        case Choices.WITHDRAW:
-          const { amount } = await inquirer.prompt({
-            type: "number",
-            name: "amount",
-            message: "Enter withdraw amount",
-          });
-          if (amount > balance) throw new Error("Insufficient balance");
-
-          balance -= amount;
-          console.log(chalk.bold.blueBright(`Withdraw amount: ${amount}`));
-          console.log(
-            chalk.bold.blueBright(`Balance after withdraw amount: ${balance}`)
-          );
+      const service = await this.askService();
+      switch (service) {
+        case ServiceChoices.BALANCE_ENQUIRY:
+          await this.balanceEnquiry();
           break;
-        case Choices.BALANCE_ENQUIRY:
-          console.log(chalk.bold.blueBright(`Your Balance: ${balance}`));
+        case ServiceChoices.CASH_DEPOSIT:
+          await this.transaction(ServiceChoices.CASH_DEPOSIT);
           break;
+        case ServiceChoices.CASH_WITHDRAW:
+          await this.transaction(ServiceChoices.CASH_WITHDRAW);
+          break;
+        case ServiceChoices.EXIT:
+          return;
       }
-      console.log(chalk.bold.blueBright("Thanks for using ATM"));
+      this.serveServices();
     } catch (error) {
       if (error instanceof Error) {
-        console.log(chalk.bold.redBright(error.message));
+        console.error(chalk.bold.redBright(error.message));
       } else if (typeof error === "string") {
-        console.log(chalk.bold.redBright(error));
+        console.error(chalk.bold.redBright(error));
       }
+      this.serveServices();
     }
   }
 
-  function init() {
-    const users: User[] = faker.helpers.multiple(createRandomUser, {
-      count: 5,
-    });
-    ATM(users);
+  private async transaction(
+    type: ServiceChoices.CASH_DEPOSIT | ServiceChoices.CASH_WITHDRAW
+  ) {
+    const { balance, accountNumber, ...rest } = await this.findAccount();
+    const amount = await this.askAmount();
+    let total = 0;
+
+    if (type === ServiceChoices.CASH_WITHDRAW) {
+      if (amount > balance) throw new Error("Insufficent Balance!");
+      total = balance - amount;
+    } else {
+      total = balance + amount;
+    }
+
+    const index = this.accounts.findIndex(
+      (acc) => acc.accountNumber === accountNumber
+    );
+
+    this.accounts.splice(index, 1, { accountNumber, ...rest, balance: total });
   }
 
-  return init();
-})();
+  private async balanceEnquiry() {
+    try {
+      const account = await this.findAccount();
+      const { name, balance } = account;
+
+      console.log(
+        `Dear! ${chalk.bold.italic(name)}, your balance is ${chalk.bold.green(
+          balance
+        )}`
+      );
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  private async findAccount() {
+    try {
+      const accountNumber = await this.askAccountNumber();
+      const account = this.accounts.find(
+        (acc) => acc.accountNumber === accountNumber
+      );
+
+      if (!account) throw new Error("Account not found!");
+
+      return account;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  private async askAmount() {
+    try {
+      const { amount } = await inquirer.prompt({
+        name: "amount",
+        type: "number",
+        message: "Enter Amount: ",
+      });
+      return amount;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  private async askAccountNumber() {
+    try {
+      const { accountNumber } = await inquirer.prompt({
+        name: "accountNumber",
+        type: "input",
+        message: "Enter Account Number: ",
+      });
+      return accountNumber;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  private async askService() {
+    try {
+      const { service } = await inquirer.prompt({
+        name: "service",
+        type: "list",
+        choices: Object.values(ServiceChoices),
+        message: "Select the Service: ",
+      });
+      return service;
+    } catch (error) {
+      throw error;
+    }
+  }
+}
+
+new Bank();
